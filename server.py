@@ -3,7 +3,6 @@ from flask import Flask, session, request
 import json
 import redis
 
-
 app = Flask(__name__)
 _redis = redis.Redis('localhost',charset="utf-8", decode_responses=True)
 
@@ -19,6 +18,7 @@ def fixedTemplate():
 @app.route("/<lobby>", methods=["GET", "PUT", "POST"])
 def derp(lobby):
 
+    print(request)
     if lobby == "favicon.ico": #browser stuff...
         return "lmao"
 
@@ -38,7 +38,7 @@ def derp(lobby):
         roomExists = _redis.exists(lobby) == True
         if roomExists == True:
             if _redis.hget(lobby,'pw') != pw:
-                return "WRONG PASSWORD"
+                return "WRONG PASSWORD", 401
 
         d = fixedTemplate()
         for key in data.keys():
@@ -58,7 +58,7 @@ def derp(lobby):
         print("PUT DATA", data, type(data))
         if _redis.exists(lobby):
             if pw != _redis.hget(lobby, 'pw'):
-                return "WRONG PASSWORD"
+                return "WRONG PASSWORD", 401
             clientMapIdx = data.pop('mapIdx')
             clientServer = data.pop('server')
             serverMapIdx = _redis.hget(lobby, "mapIdx")
@@ -87,7 +87,7 @@ def derp(lobby):
                 _redis.hset(lobby, key, d[key])
 
         if _redis.hget(lobby,"pw") != pw:
-            return "WRONG PASSWORD"
+            return "WRONG PASSWORD", 401
 
         data = {}
         data['server'] = _redis.hget(lobby, "server")
@@ -101,7 +101,7 @@ def derp(lobby):
         _redis.expire(lobby, 1800)
         return json.dumps(data)
     
-    return "UNSUPPORTED"
+    return "UNSUPPORTED", 404
 
 if __name__ == "__main__":
     from waitress import serve
